@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NxtWave | Build Your First AI Project in 60 Minutes</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            noir: {
+              950: '#09090b',
+              900: '#121215',
+              850: '#18181c',
+              800: '#222227',
+              700: '#2e2e36',
+              600: '#3f3f46',
+            },
+            iris: {
+              400: '#a78bfa',
+              500: '#8b5cf6',
+              600: '#7c3aed',
+              700: '#6d28d9',
+            },
+            sage: {
+              400: '#34d399',
+              500: '#10b981',
+            },
+            peach: {
+              400: '#fb923c',
+              500: '#f97316',
+            },
+            coral: {
+              400: '#f472b6',
+              500: '#ec4899',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- React 18 & Babel for instant browser execution -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in { animation: fadeIn 0.25s ease-out forwards; }
+  </style>
+</head>
+<body class="bg-[#09090b] text-zinc-100 antialiased selection:bg-purple-600 selection:text-white min-h-screen">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const API_BASE = "/api";
+
+    const TOP_COLLEGES = [
+      "Vellore Institute of Technology (VIT)",
+      "SRM Institute of Science and Technology",
+      "JNTU College of Engineering Hyderabad",
+      "PES University, Bengaluru",
+      "BMS College of Engineering",
+      "RV College of Engineering",
+      "Manipal Institute of Technology (MIT)",
+      "Thapar Institute of Engineering & Technology",
+      "PSG College of Technology, Coimbatore",
+      "Delhi Technological University (DTU)",
+      "Osmania University College of Engineering",
+      "Chaitanya Bharathi Institute of Technology (CBIT)",
+      "National Institute of Technology (NIT)"
+    ];
+
+    const BRANCHES = [
+      "Computer Science & Engineering (CSE)",
+      "Electronics & Communication (ECE)",
+      "Information Technology (IT)",
+      "Electrical & Electronics (EEE)",
+      "Artificial Intelligence & Data Science",
+      "Mechanical Engineering",
+      "Civil Engineering",
+      "Other Engineering Stream"
+    ];
+
+    function App() {
+      const [activeTab, setActiveTab] = useState("register");
+      const [health, setHealth] = useState(null);
+      const [overview, setOverview] = useState(null);
+      const [isSeeding, setIsSeeding] = useState(false);
+      const [toast, setToast] = useState(null);
+
+      useEffect(() => {
+        loadStatus();
+      }, []);
+
+      const loadStatus = async () => {
+        try {
+          const [hRes, oRes] = await Promise.all([
+            fetch(`${API_BASE}/health`),
+            fetch(`${API_BASE}/analytics/overview`)
+          ]);
+          if (hRes.ok) setHealth(await hRes.json());
+          if (oRes.ok) setOverview(await oRes.json());
+        } catch (err) {
+          console.error("Status load failed:", err);
+        }
+      };
+
+      const showToast = (message, type = "success") => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 4000);
+      };
+
+      const handleSeed = async () => {
+        setIsSeeding(true);
+        try {
+          const res = await fetch(`${API_BASE}/analytics/seed`, { method: "POST" });
+          const data = await res.json();
+          await loadStatus();
+          showToast(data.message || "Loaded 500 realistic student registrations!", "success");
+        } catch (err) {
+          showToast(err.message || "Seeding failed.", "error");
+        } finally {
+          setIsSeeding(false);
+        }
+      };
+
+      const handleReset = async () => {
+        if (!confirm("Are you sure you want to reset all registrations to 0?")) return;
+        try {
+          await fetch(`${API_BASE}/analytics/reset`, { method: "DELETE" });
+          await loadStatus();
+          showToast("Database reset to 0 registrations.", "info");
+        } catch (err) {
+          showToast(err.message || "Reset failed.", "error");
+        }
+      };
+
+      const isSupabase = health?.database?.provider === "supabase" && health?.database?.connected;
+
+      return (
+        <div className="min-h-screen flex flex-col bg-[#09090b]">
+          {toast && (
+            <div className="fixed bottom-5 right-5 z-50 animate-fade-in">
+              <div className={`px-4 py-3 rounded-xl shadow-2xl text-xs sm:text-sm font-medium flex items-center gap-2 border ${
+                toast.type === "success" ? "bg-zinc-900 border-emerald-500/40 text-emerald-300" :
+                toast.type === "error" ? "bg-zinc-900 border-rose-500/40 text-rose-300" : "bg-zinc-900 border-purple-500/40 text-purple-300"
+              }`}>
+                <span>{toast.type === "success" ? "✓" : toast.type === "error" ? "✕" : "ℹ"}</span>
+                <span>{toast.message}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Aesthetic Minimalist Navbar */}
+          <header className="sticky top-0 z-50 bg-[#121215]/95 backdrop-blur-md border-b border-[#222227] text-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-16">
+                {/* Brand Logo with Iris Violet Accent */}
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 flex items-center justify-center font-black text-white text-sm shadow-md shadow-purple-900/30">
+                    NW
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm sm:text-base text-zinc-100 tracking-tight">
+                        NxtWave Growth
+                      </span>
+                      <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-500/10 text-violet-300 border border-violet-500/20">
+                        Goal: 500 Students
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 hidden sm:block">Build Your First AI Project in 60 Mins</p>
+                  </div>
+                </div>
+
+                {/* Primary Nav with Pill Switcher */}
+                <nav className="flex items-center gap-1 sm:gap-1.5 bg-[#09090b] p-1 rounded-xl border border-[#222227]">
+                  {[
+                    { id: "register", label: "Registration" },
+                    { id: "referral", label: "Referral Hub" },
+                    { id: "analytics", label: "Analytics" },
+                    { id: "strategy", label: "Strategy" },
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition duration-150 ${
+                        activeTab === tab.id
+                          ? "bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold shadow-sm"
+                          : "text-zinc-400 hover:text-zinc-200 hover:bg-[#18181c]"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </nav>
+
+                {/* Database Pill & Action */}
+                <div className="flex items-center gap-2.5">
+                  <div className={`hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                    isSupabase ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" : "bg-amber-500/10 text-amber-300 border-amber-500/30"
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${isSupabase ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`}></span>
+                    <span>{isSupabase ? "Supabase Live" : "Local DB"}</span>
+                  </div>
+
+                  <button
+                    onClick={handleSeed}
+                    disabled={isSeeding}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#18181c] hover:bg-[#222227] text-zinc-200 border border-[#2e2e36] transition"
+                  >
+                    {isSeeding ? "Seeding..." : "⚡ Seed 500"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* Main Body */}
+          <main className="flex-1">
+            {activeTab === "register" && (
+              <RegistrationView overview={overview} onRegistrationSuccess={loadStatus} setActiveTab={setActiveTab} />
+            )}
+            {activeTab === "referral" && <ReferralView />}
+            {activeTab === "analytics" && (
+              <AnalyticsView overview={overview} refreshOverview={loadStatus} onSeed={handleSeed} onReset={handleReset} isSeeding={isSeeding} />
+            )}
+            {activeTab === "strategy" && <StrategyView />}
+          </main>
+
+          {/* Minimalist Footer */}
+          <footer className="border-t border-[#18181c] bg-[#0c0c0e] py-5 text-center text-xs text-zinc-500">
+            <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+              <p>© 2026 NxtWave Disruptive Technologies — Growth Challenge</p>
+              <div className="flex items-center gap-4 text-zinc-400">
+                <span>Target: 500 Final Years</span>
+                <span>•</span>
+                <span>Budget: ₹2,000 (₹4 CAC)</span>
+                <span>•</span>
+                <span>Python FastAPI + Supabase</span>
+              </div>
+            </div>
+          </footer>
+        </div>
+      );
+    }
+
+    function RegistrationView({ overview, onRegistrationSuccess, setActiveTab }) {
+      const [formData, setFormData] = useState({
+        name: "", email: "", phone: "", college: "", branch: BRANCHES[0],
+        graduation_year: 2025, ai_experience: "Beginner", referred_by: "", channel: "Direct"
+      });
+      const [hasReferralParam, setHasReferralParam] = useState(false);
+      const [submitting, setSubmitting] = useState(false);
+      const [errorMsg, setErrorMsg] = useState("");
+      const [successData, setSuccessData] = useState(null);
+      const [copiedLink, setCopiedLink] = useState(false);
+      const [timeLeft, setTimeLeft] = useState({ hours: 48, minutes: 24, seconds: 12 });
+
+      useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const refCode = params.get("ref");
+        const channel = params.get("utm_source") || (refCode ? "Referral Engine" : "Direct");
+        if (refCode) {
+          setFormData(prev => ({ ...prev, referred_by: refCode.trim().toUpperCase(), channel }));
+          setHasReferralParam(true);
+        } else if (channel) {
+          setFormData(prev => ({ ...prev, channel }));
+        }
+
+        const timer = setInterval(() => {
+          setTimeLeft(prev => {
+            if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
+            if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
+            if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
+            return prev;
+          });
+        }, 1000);
+        return () => clearInterval(timer);
+      }, []);
+
+      const handleChange = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setErrorMsg("");
+        setSubmitting(true);
+        try {
+          const res = await fetch(`${API_BASE}/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData)
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Registration failed");
+          setSuccessData(data);
+          if (onRegistrationSuccess) onRegistrationSuccess();
+        } catch (err) {
+          setErrorMsg(err.message);
+        } finally {
+          setSubmitting(false);
+        }
+      };
+
+      const currentCount = overview?.total_registrations || 0;
+      const targetCount = overview?.target_registrations || 500;
+      const progressPct = Math.min(100, Math.round((currentCount / targetCount) * 100));
+
+      const getFullUrl = (code) => `${window.location.origin}${window.location.pathname}?ref=${code}`;
+      const copyUrl = (code) => {
+        navigator.clipboard.writeText(getFullUrl(code));
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 2000);
+      };
+
+      const shareWhatsApp = (code) => {
+        const text = encodeURIComponent(`Hey! Register for NxtWave's free online workshop: "Build Your First AI Project in 60 Minutes" for final years. We'll build & deploy a live LLM app for placement resumes. Only 500 seats available!\n\nRegister using my link to get the AI code pack:\n${getFullUrl(code)}`);
+        window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
+      };
+
+      return (
+        <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
+          {/* Status Bar */}
+          <div className="bg-[#121215] border border-[#222227] rounded-2xl p-5 shadow-sm">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                  <p className="text-[11px] uppercase tracking-wider text-zinc-400 font-semibold">Cohort Capacity</p>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold text-white mt-1">
+                  {currentCount} of {targetCount} Seats Confirmed
+                </h2>
+              </div>
+
+              {/* Countdown in Warm Peach */}
+              <div className="flex items-center gap-2 bg-[#09090b] px-4 py-2.5 rounded-xl border border-[#222227]">
+                <span className="text-xs text-zinc-400 font-medium">Starts In:</span>
+                <div className="flex items-center gap-1 font-mono text-sm sm:text-base font-bold text-amber-300">
+                  <span className="bg-[#18181c] px-2 py-0.5 rounded text-zinc-100">{timeLeft.hours}h</span>
+                  <span>:</span>
+                  <span className="bg-[#18181c] px-2 py-0.5 rounded text-zinc-100">{timeLeft.minutes}m</span>
+                  <span>:</span>
+                  <span className="bg-[#18181c] px-2 py-0.5 rounded text-zinc-100">{timeLeft.seconds}s</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <div className="flex justify-between text-xs text-zinc-400 mb-1.5 font-medium">
+                <span>Registration Pace</span>
+                <span className="text-violet-400 font-bold">{progressPct}% Claimed</span>
+              </div>
+              <div className="w-full bg-[#18181c] rounded-full h-2 overflow-hidden">
+                <div className="bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 h-2 rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }}></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left Overview Column */}
+            <div className="lg:col-span-7 space-y-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-violet-500/10 text-violet-300 border border-violet-500/20">
+                <span>⚡ Live Hands-On Masterclass</span>
+                <span>•</span>
+                <span>Final-Year Placement Prep</span>
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+                Build Your First AI Project in 60 Minutes
+              </h1>
+
+              <p className="text-base text-zinc-300 leading-relaxed">
+                Stand out in campus placement drives and final-year capstone reviews. Build and deploy a working Generative AI application with Python and LLMs—with zero heavy math.
+              </p>
+
+              {/* Aesthetic Card Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                {[
+                  { title: "Hands-On Coding", desc: "Build a real working LLM app from scratch in 60 minutes.", tag: "Practical" },
+                  { title: "Placement Edge", desc: "Add a verifiable AI project link to your resume & GitHub.", tag: "Career" },
+                  { title: "Official Certificate", desc: "Get an authentic NxtWave Certificate of Completion.", tag: "Verified" },
+                  { title: "Starter Prompt Kit", desc: "50+ tested AI prompts, architectures, and boilerplate.", tag: "Bonus" }
+                ].map((item, idx) => (
+                  <div key={idx} className="p-4 rounded-xl bg-[#121215] border border-[#222227] hover:border-[#2e2e36] transition">
+                    <div className="flex justify-between items-center mb-1.5">
+                      <h3 className="font-semibold text-white text-sm">{item.title}</h3>
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-300 border border-violet-500/20">{item.tag}</span>
+                    </div>
+                    <p className="text-xs text-zinc-400 leading-relaxed">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#121215] border border-[#222227] flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-purple-600 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm">
+                  AI
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-white">Curated by NxtWave AI Engineering Mentors</h4>
+                  <p className="text-xs text-zinc-400">IIT alumni and leading industry practitioners. Trusted by 100,000+ engineers.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Registration Card */}
+            <div className="lg:col-span-5">
+              <div className="bg-[#121215] border border-[#222227] rounded-2xl p-6 sm:p-7 shadow-xl">
+                <div className="mb-5">
+                  <h2 className="text-xl font-bold text-white">Reserve Your Free Seat</h2>
+                  <p className="text-xs text-zinc-400 mt-1">100% Free. Zoom link will be delivered via WhatsApp and Email.</p>
+                </div>
+
+                {hasReferralParam && (
+                  <div className="mb-4 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-300 flex items-center gap-2">
+                    <span>🎁</span>
+                    <div>
+                      <span>Invited by friend: </span>
+                      <span className="font-mono font-bold text-white">{formData.referred_by}</span>
+                    </div>
+                  </div>
+                )}
+
+                {errorMsg && (
+                  <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">
+                    {errorMsg}
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-3.5">
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-300 mb-1">Full Name *</label>
+                    <input type="text" name="name" required placeholder="e.g. Rahul Sharma" value={formData.name} onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#09090b] border border-[#222227] text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-violet-500" />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-300 mb-1">Email Address *</label>
+                    <input type="email" name="email" required placeholder="rahul.sharma@gmail.com" value={formData.email} onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#09090b] border border-[#222227] text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-violet-500" />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-300 mb-1">WhatsApp Phone Number *</label>
+                    <input type="tel" name="phone" required placeholder="+91 9876543210" value={formData.phone} onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#09090b] border border-[#222227] text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-violet-500" />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-300 mb-1">College *</label>
+                      <input type="text" name="college" required list="colleges" placeholder="Enter college" value={formData.college} onChange={handleChange}
+                        className="w-full px-3 py-2 rounded-xl bg-[#09090b] border border-[#222227] text-white text-xs sm:text-sm focus:outline-none focus:border-violet-500" />
+                      <datalist id="colleges">
+                        {TOP_COLLEGES.map((c, i) => <option key={i} value={c} />)}
+                      </datalist>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-300 mb-1">Branch *</label>
+                      <select name="branch" value={formData.branch} onChange={handleChange}
+                        className="w-full px-3 py-2 rounded-xl bg-[#09090b] border border-[#222227] text-white text-xs sm:text-sm focus:outline-none focus:border-violet-500">
+                        {BRANCHES.map((b, i) => <option key={i} value={b}>{b}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-300 mb-1">Graduation Year</label>
+                      <select name="graduation_year" value={formData.graduation_year} onChange={handleChange}
+                        className="w-full px-3 py-2 rounded-xl bg-[#09090b] border border-[#222227] text-white text-xs sm:text-sm focus:outline-none focus:border-violet-500">
+                        <option value={2025}>2025 (Final Year)</option>
+                        <option value={2026}>2026 (Pre-Final Year)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-300 mb-1">AI Experience</label>
+                      <select name="ai_experience" value={formData.ai_experience} onChange={handleChange}
+                        className="w-full px-3 py-2 rounded-xl bg-[#09090b] border border-[#222227] text-white text-xs sm:text-sm focus:outline-none focus:border-violet-500">
+                        <option value="Beginner">Beginner (No prior AI)</option>
+                        <option value="Intermediate">Intermediate (Know Python)</option>
+                        <option value="Never Coded">Never built a project</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {!hasReferralParam && (
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-300 mb-1">Referral Code (Optional)</label>
+                      <input type="text" name="referred_by" placeholder="e.g. NXT-ROHAN-4812" value={formData.referred_by} onChange={handleChange}
+                        className="w-full px-3.5 py-2 rounded-xl bg-[#09090b] border border-[#222227] text-white text-xs font-mono uppercase focus:outline-none focus:border-violet-500" />
+                    </div>
+                  )}
+
+                  <button type="submit" disabled={submitting}
+                    className="w-full py-3.5 px-4 rounded-xl font-bold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-500 hover:to-purple-500 shadow-lg shadow-purple-900/25 transition text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2">
+                    {submitting ? "Confirming Seat..." : "Confirm Free Registration Now →"}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {/* Clean Success Modal */}
+          {successData && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+              <div className="bg-[#121215] border border-[#222227] max-w-md w-full rounded-2xl p-6 shadow-2xl relative text-white">
+                <div className="text-center">
+                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto text-2xl mb-3">✓</div>
+                  <h3 className="text-xl font-bold text-white">Registration Confirmed</h3>
+                  <p className="text-xs text-zinc-300 mt-1">Welcome, {successData.name}. Your workshop pass has been generated.</p>
+                </div>
+
+                <div className="mt-4 p-3.5 rounded-xl bg-[#09090b] border border-[#222227] space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-400">College:</span>
+                    <span className="font-semibold text-white truncate max-w-[200px]">{successData.college}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-400">Your Referral Code:</span>
+                    <span className="font-mono font-bold text-violet-400 text-sm">{successData.referral_code}</span>
+                  </div>
+                </div>
+
+                <div className="mt-5 p-4 rounded-xl bg-purple-950/20 border border-purple-800/30 space-y-2.5">
+                  <h4 className="text-xs font-bold text-purple-200">🎁 Invite 3 Classmates & Unlock 50+ AI Prompts</h4>
+                  <div className="flex gap-2">
+                    <input type="text" readOnly value={getFullUrl(successData.referral_code)}
+                      className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-[#09090b] border border-[#222227] text-zinc-300 font-mono select-all" />
+                    <button onClick={() => copyUrl(successData.referral_code)}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#18181c] hover:bg-[#222227] text-white border border-[#2e2e36] transition">
+                      {copiedLink ? "Copied!" : "Copy"}
+                    </button>
+                  </div>
+
+                  <button onClick={() => shareWhatsApp(successData.referral_code)}
+                    className="w-full py-2.5 px-4 rounded-xl font-bold text-xs text-white bg-emerald-600 hover:bg-emerald-500 shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
+                    <span>Share in WhatsApp Class Groups</span>
+                  </button>
+                </div>
+
+                <div className="mt-5 flex gap-2">
+                  <button onClick={() => { setSuccessData(null); setActiveTab("referral"); }}
+                    className="flex-1 py-2 px-3 text-xs font-semibold rounded-xl bg-[#18181c] hover:bg-[#222227] text-zinc-200 border border-[#222227] transition">
+                    View Referral Hub
+                  </button>
+                  <button onClick={() => setSuccessData(null)}
+                    className="flex-1 py-2 px-3 text-xs font-semibold rounded-xl bg-violet-600 hover:bg-violet-500 text-white transition">
+                    Done
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function ReferralView() {
+      const [term, setTerm] = useState("");
+      const [loading, setLoading] = useState(false);
+      const [data, setData] = useState(null);
+      const [errorMsg, setErrorMsg] = useState("");
+      const [leaderboard, setLeaderboard] = useState([]);
+      const [copied, setCopied] = useState(false);
+
+      useEffect(() => {
+        loadLeaderboard();
+      }, []);
+
+      const loadLeaderboard = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/leaderboard?limit=10`);
+          if (res.ok) setLeaderboard(await res.json());
+        } catch (e) {}
+      };
+
+      const handleSearch = async (e) => {
+        if (e) e.preventDefault();
+        if (!term.trim()) return;
+        setErrorMsg("");
+        setLoading(true);
+        try {
+          const res = await fetch(`${API_BASE}/referral/${encodeURIComponent(term.trim())}`);
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.detail || "No referral found");
+          setData(json);
+        } catch (err) {
+          setErrorMsg(err.message);
+          setData(null);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const copyUrl = (code) => {
+        navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?ref=${code}`);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      };
+
+      return (
+        <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
+          <div className="text-center max-w-2xl mx-auto space-y-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Referral Tracker & Campus Leaderboard</h1>
+            <p className="text-xs sm:text-sm text-zinc-400">Invite batchmates to the workshop. Track your referrals and unlock placement perks.</p>
+
+            <form onSubmit={handleSearch} className="max-w-md mx-auto pt-3 flex gap-2">
+              <input type="text" placeholder="Enter Referral Code or Email" value={term} onChange={e => setTerm(e.target.value)}
+                className="flex-1 px-3.5 py-2 rounded-xl bg-[#09090b] border border-[#222227] text-white placeholder-zinc-500 text-xs sm:text-sm focus:outline-none focus:border-violet-500" />
+              <button type="submit" disabled={loading}
+                className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs sm:text-sm transition shadow-md shadow-violet-900/20">
+                {loading ? "Searching..." : "Track"}
+              </button>
+            </form>
+
+            {errorMsg && <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 py-1 px-3 rounded-lg inline-block">{errorMsg}</p>}
+          </div>
+
+          {data && (
+            <div className="bg-[#121215] border border-[#222227] rounded-2xl p-6 shadow-xl space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#222227] pb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-white">{data.student_name}</h2>
+                  <p className="text-xs text-zinc-400">{data.college}</p>
+                </div>
+                <div className="bg-[#09090b] px-4 py-2 rounded-xl border border-[#222227] text-center">
+                  <p className="text-[11px] text-zinc-400 font-medium">Total Friends Referred</p>
+                  <p className="text-xl font-bold text-violet-400">{data.total_referrals}</p>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#09090b] border border-[#222227] flex items-center justify-between text-xs">
+                <div>Referral Code: <span className="font-mono font-bold text-violet-300 text-sm ml-1">{data.referral_code}</span></div>
+                <button onClick={() => copyUrl(data.referral_code)} className="px-3 py-1 bg-[#18181c] hover:bg-[#222227] text-white rounded-lg font-medium transition">
+                  {copied ? "Copied!" : "Copy Invite Link"}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {data.rewards.map(r => (
+                  <div key={r.tier_number} className={`p-4 rounded-xl border ${
+                    r.is_unlocked ? "bg-violet-950/20 border-violet-500/40" : "bg-[#09090b] border-[#222227] opacity-60"
+                  }`}>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-bold text-violet-400">Tier {r.tier_number} ({r.milestone} Refs)</span>
+                      {r.is_unlocked && <span className="text-xs text-emerald-400 font-semibold">✓ Unlocked</span>}
+                    </div>
+                    <h4 className="text-xs font-bold text-white mb-1">{r.title}</h4>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">{r.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Leaderboard */}
+          <div className="bg-[#121215] border border-[#222227] rounded-2xl p-6 shadow-xl space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-bold text-white">Campus Ambassador Leaderboard</h2>
+                <p className="text-xs text-zinc-400">Top referrers competing for the ₹300 leaderboard cash bounty pool.</p>
+              </div>
+              <button onClick={loadLeaderboard} className="px-3 py-1.5 text-xs rounded-lg bg-[#18181c] hover:bg-[#222227] text-zinc-200 border border-[#222227]">↻ Refresh</button>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-[#222227] bg-[#09090b]">
+              <table className="w-full text-xs text-left text-zinc-300">
+                <thead className="bg-[#18181c] text-zinc-400 font-semibold border-b border-[#222227]">
+                  <tr>
+                    <th className="px-4 py-2.5">Rank</th>
+                    <th className="px-4 py-2.5">Student</th>
+                    <th className="px-4 py-2.5">College</th>
+                    <th className="px-4 py-2.5 text-right">Referrals</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#222227]">
+                  {leaderboard.map(item => (
+                    <tr key={item.referral_code} className="hover:bg-zinc-900/40">
+                      <td className="px-4 py-2.5 font-bold text-white">#{item.rank}</td>
+                      <td className="px-4 py-2.5 font-semibold text-white">{item.name_masked}</td>
+                      <td className="px-4 py-2.5 text-zinc-300">{item.college}</td>
+                      <td className="px-4 py-2.5 text-right font-bold text-violet-400 text-sm">{item.total_referrals}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function AnalyticsView({ overview, refreshOverview, onSeed, onReset, isSeeding }) {
+      const [channels, setChannels] = useState([]);
+      const [colleges, setColleges] = useState([]);
+      const [branches, setBranches] = useState([]);
+      const [timeline, setTimeline] = useState([]);
+      const [recent, setRecent] = useState([]);
+
+      useEffect(() => {
+        loadData();
+      }, []);
+
+      const loadData = async () => {
+        try {
+          const [ch, col, br, tm, rec] = await Promise.all([
+            fetch(`${API_BASE}/analytics/channels`).then(r => r.json()),
+            fetch(`${API_BASE}/analytics/colleges?limit=10`).then(r => r.json()),
+            fetch(`${API_BASE}/analytics/branches`).then(r => r.json()),
+            fetch(`${API_BASE}/analytics/timeline`).then(r => r.json()),
+            fetch(`${API_BASE}/analytics/recent?limit=15`).then(r => r.json()),
+          ]);
+          setChannels(ch); setColleges(col); setBranches(br); setTimeline(tm); setRecent(rec);
+          if (refreshOverview) refreshOverview();
+        } catch (e) {}
+      };
+
+      const current = overview?.total_registrations || 0;
+      const target = overview?.target_registrations || 500;
+      const pct = Math.min(100, Math.round((current / target) * 100));
+
+      return (
+        <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#222227] pb-4">
+            <div>
+              <h1 className="text-2xl font-bold text-white">Campaign Analytics Dashboard</h1>
+              <p className="text-xs text-zinc-400 mt-1">Real-time tracking of the 500 final-year student registration drive and ₹2,000 budget efficiency.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <a href={`${API_BASE}/analytics/export`} download className="px-3 py-1.5 text-xs font-bold rounded-lg bg-violet-600 hover:bg-violet-500 text-white">📥 Export CSV</a>
+              <button onClick={onSeed} disabled={isSeeding} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white">
+                {isSeeding ? "Seeding..." : "⚡ Simulate 500"}
+              </button>
+              <button onClick={onReset} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-800/40">Reset</button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="bg-[#121215] border border-[#222227] rounded-xl p-4">
+              <div className="flex justify-between text-xs text-zinc-400 font-medium mb-1">
+                <span>Total Registrations</span>
+                <span className="text-violet-400 font-bold">{pct}%</span>
+              </div>
+              <div className="text-2xl font-bold text-white">{current} <span className="text-xs text-zinc-500 font-normal">/ {target}</span></div>
+              <div className="mt-2.5 w-full bg-[#18181c] rounded-full h-2 overflow-hidden">
+                <div className="bg-gradient-to-r from-violet-500 to-purple-500 h-2 rounded-full" style={{ width: `${pct}%` }}></div>
+              </div>
+            </div>
+
+            <div className="bg-[#121215] border border-[#222227] rounded-xl p-4">
+              <div className="flex justify-between text-xs text-zinc-400 font-medium mb-1">
+                <span>Viral Referrals</span>
+                <span className="text-emerald-400 font-bold">{overview?.referral_percentage || 0}%</span>
+              </div>
+              <div className="text-2xl font-bold text-white">{overview?.total_referrals || 0}</div>
+              <p className="text-[11px] text-zinc-500 mt-2">Target: 95 students via peer loops</p>
+            </div>
+
+            <div className="bg-[#121215] border border-[#222227] rounded-xl p-4">
+              <div className="flex justify-between text-xs text-zinc-400 font-medium mb-1">
+                <span>Colleges Represented</span>
+                <span className="text-zinc-300 font-bold">Tier 1, 2 & 3</span>
+              </div>
+              <div className="text-2xl font-bold text-white">{overview?.unique_colleges || 0}</div>
+              <p className="text-[11px] text-zinc-500 mt-2">Campuses participating</p>
+            </div>
+
+            <div className="bg-[#121215] border border-[#222227] rounded-xl p-4">
+              <div className="flex justify-between text-xs text-zinc-400 font-medium mb-1">
+                <span>Budget & CAC</span>
+                <span className="text-amber-400 font-bold">₹2,000 Budget</span>
+              </div>
+              <div className="text-2xl font-bold text-white">₹{overview?.cost_per_registration || 0} <span className="text-xs text-zinc-400 font-normal">CAC</span></div>
+              <p className="text-[11px] text-zinc-500 mt-2">Spent: ₹{overview?.budget_spent || 0} / ₹2,000</p>
+            </div>
+          </div>
+
+          {/* Channels */}
+          <div className="bg-[#121215] border border-[#222227] rounded-xl p-5 space-y-3">
+            <h2 className="text-base font-bold text-white">Channel Attribution vs Planned Targets (Total: 500)</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {channels.map(ch => (
+                <div key={ch.channel} className="p-3.5 rounded-xl bg-[#09090b] border border-[#222227] space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-white text-xs">{ch.channel}</span>
+                    <span className="text-violet-400 font-bold text-xs">{ch.registrations} / {ch.target}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] text-zinc-400">
+                    <span>Budget: ₹{ch.cost_allocated}</span>
+                    <span>CAC: ₹{ch.cost_per_reg}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 7-Day Velocity */}
+          <div className="bg-[#121215] border border-[#222227] rounded-xl p-5 space-y-3">
+            <h2 className="text-base font-bold text-white">7-Day Campaign Pace & Velocity</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+              {timeline.map((item, idx) => (
+                <div key={idx} className="p-3 rounded-xl bg-[#09090b] border border-[#222227] text-center">
+                  <span className="text-[11px] font-bold text-violet-400 uppercase">{item.day}</span>
+                  <div className="text-base font-bold text-white mt-0.5">{item.actual}</div>
+                  <div className="text-[10px] text-zinc-400">Target: {item.target}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent Feed */}
+          <div className="bg-[#121215] border border-[#222227] rounded-xl p-5 space-y-3">
+            <h2 className="text-base font-bold text-white">Live Registrations Stream</h2>
+            <div className="overflow-x-auto rounded-xl border border-[#222227] bg-[#09090b]">
+              <table className="w-full text-xs text-left text-zinc-300">
+                <thead className="bg-[#18181c] text-zinc-400 font-semibold border-b border-[#222227]">
+                  <tr>
+                    <th className="px-3.5 py-2">Student</th>
+                    <th className="px-3.5 py-2">College</th>
+                    <th className="px-3.5 py-2">Branch</th>
+                    <th className="px-3.5 py-2">Channel</th>
+                    <th className="px-3.5 py-2">Referral Code</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#222227]">
+                  {recent.map((r, i) => (
+                    <tr key={i} className="hover:bg-zinc-800/20">
+                      <td className="px-3.5 py-2 font-medium text-white">{r.name}</td>
+                      <td className="px-3.5 py-2 text-zinc-300 truncate max-w-[200px]">{r.college}</td>
+                      <td className="px-3.5 py-2 text-zinc-400">{r.branch}</td>
+                      <td className="px-3.5 py-2"><span className="px-2 py-0.5 rounded bg-zinc-800 text-[10px]">{r.channel}</span></td>
+                      <td className="px-3.5 py-2 font-mono text-violet-400">{r.referral_code}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function StrategyView() {
+      return (
+        <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-6 text-zinc-200">
+          <div className="text-center space-y-1.5 border-b border-[#222227] pb-5">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">500 Student Registration Strategy Plan</h1>
+            <p className="text-xs sm:text-sm text-zinc-400">7-Day Tactical Roadmap, ₹2,000 Budget Allocation, and Evaluation Answers.</p>
+          </div>
+
+          <div className="bg-[#121215] border border-[#222227] rounded-xl p-5 space-y-3">
+            <h2 className="text-base font-bold text-white">1. Understand the Student Persona</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div className="p-3.5 rounded-xl bg-[#09090b] border border-[#222227]">
+                <h3 className="font-bold text-violet-400 mb-1">Target Audience</h3>
+                <p className="text-zinc-300 leading-relaxed">Final-year engineering undergraduates (Batch 2025/2026) across Tier 1, 2, and 3 colleges (CSE, IT, ECE, EEE, and core streams pivoting to tech).</p>
+              </div>
+              <div className="p-3.5 rounded-xl bg-[#09090b] border border-[#222227]">
+                <h3 className="font-bold text-violet-400 mb-1">Why They Care</h3>
+                <p className="text-zinc-300 leading-relaxed">Urgency for campus placements requiring Generative AI projects on their resume, capstone deadlines, and avoiding 40 hours of heavy theory.</p>
+              </div>
+              <div className="p-3.5 rounded-xl bg-[#09090b] border border-[#222227]">
+                <h3 className="font-bold text-violet-400 mb-1">Why They Register</h3>
+                <p className="text-zinc-300 leading-relaxed">Tangible outcome: a working GitHub project in 60 mins, official certificate, zero monetary cost, and peer viral referral unlocks.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-[#121215] border border-[#222227] rounded-xl p-5 space-y-3">
+            <h2 className="text-base font-bold text-white">2. Marketing Channels, Targets (Total: 500) & ₹2,000 Budget</h2>
+            <div className="overflow-x-auto rounded-xl border border-[#222227] bg-[#09090b] text-xs">
+              <table className="w-full text-left text-zinc-300">
+                <thead className="bg-[#18181c] text-zinc-400 font-semibold border-b border-[#222227]">
+                  <tr>
+                    <th className="px-3.5 py-2">Channel</th>
+                    <th className="px-3.5 py-2">Action Plan</th>
+                    <th className="px-3.5 py-2 text-center">Registrations</th>
+                    <th className="px-3.5 py-2 text-center">Budget</th>
+                    <th className="px-3.5 py-2 text-right">CAC</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#222227]">
+                  <tr>
+                    <td className="px-3.5 py-2 font-semibold text-white">1. WhatsApp Class Groups</td>
+                    <td className="px-3.5 py-2 text-zinc-400">Incentivize Class Reps (CRs) in 35 colleges</td>
+                    <td className="px-3.5 py-2 text-center font-bold text-violet-400">190 (38%)</td>
+                    <td className="px-3.5 py-2 text-center">₹400</td>
+                    <td className="px-3.5 py-2 text-right">₹2.11</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3.5 py-2 font-semibold text-white">2. Campus Tech Clubs</td>
+                    <td className="px-3.5 py-2 text-zinc-400">Co-host with 6 developer clubs (GDSC, CSI)</td>
+                    <td className="px-3.5 py-2 text-center font-bold text-violet-400">125 (25%)</td>
+                    <td className="px-3.5 py-2 text-center">₹500</td>
+                    <td className="px-3.5 py-2 text-right">₹4.00</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3.5 py-2 font-semibold text-white">3. Peer Referral Engine</td>
+                    <td className="px-3.5 py-2 text-zinc-400">Milestone digital perks + ₹300 leaderboard bounty</td>
+                    <td className="px-3.5 py-2 text-center font-bold text-violet-400">95 (19%)</td>
+                    <td className="px-3.5 py-2 text-center">₹300</td>
+                    <td className="px-3.5 py-2 text-right">₹3.16</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3.5 py-2 font-semibold text-white">4. Meta Micro-Boost</td>
+                    <td className="px-3.5 py-2 text-zinc-400">Targeted IG Stories to final-year engineers</td>
+                    <td className="px-3.5 py-2 text-center font-bold text-violet-400">55 (11%)</td>
+                    <td className="px-3.5 py-2 text-center">₹600</td>
+                    <td className="px-3.5 py-2 text-right">₹10.90</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3.5 py-2 font-semibold text-white">5. LinkedIn & Placement</td>
+                    <td className="px-3.5 py-2 text-zinc-400">Placement Telegram & LinkedIn community posts</td>
+                    <td className="px-3.5 py-2 text-center font-bold text-violet-400">35 (7%)</td>
+                    <td className="px-3.5 py-2 text-center">₹200</td>
+                    <td className="px-3.5 py-2 text-right">₹5.71</td>
+                  </tr>
+                  <tr className="bg-[#18181c] font-bold text-white">
+                    <td className="px-3.5 py-2">TOTAL CAMPAIGN</td>
+                    <td className="px-3.5 py-2">Multi-Channel Blend</td>
+                    <td className="px-3.5 py-2 text-center text-violet-400">500 Students</td>
+                    <td className="px-3.5 py-2 text-center text-amber-400">₹2,000</td>
+                    <td className="px-3.5 py-2 text-right text-emerald-400">₹4.00 Avg</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="bg-[#121215] border border-[#222227] rounded-xl p-5 space-y-4">
+            <h2 className="text-base font-bold text-white">3. Show Us How You Thought (Assignment Answers)</h2>
+            <div className="space-y-3.5 text-xs sm:text-sm">
+              <div>
+                <h3 className="font-semibold text-violet-300">What changed between your first idea and final solution?</h3>
+                <p className="text-zinc-300 mt-1 leading-relaxed">Initially planned to spend all ₹2,000 on Meta and Google Ads. Realized ₹2,000 at ₹4 CPC yields only ~500 clicks, converting to barely ~100 registrations (CAC ₹20+). Pivoted to a peer-led community viral strategy where 80%+ of signups come from Class WhatsApp groups, campus clubs, and referral loops, slashing CAC to ₹4.00.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-violet-300">If you had another 24 hours, what would you improve?</h3>
+                <p className="text-zinc-300 mt-1 leading-relaxed">Integrate automated WhatsApp Cloud API bots for instant pass delivery and 1-hour pre-workshop reminders (boosting attendance from 40% to 70%+), build a real-time inter-college rivalry leaderboard, and add a branch-specific AI capstone project idea generator.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-violet-300">What did AI suggest that you deliberately rejected and why?</h3>
+                <p className="text-zinc-300 mt-1 leading-relaxed">AI suggested cold email outreach to college Training & Placement Officers (TPOs) and HODs. Deliberately rejected because college administration takes 2–4 weeks for approvals (our timeline is 7 days), and mandatory college workshops suffer from poor student enthusiasm compared to student-to-student peer buzz.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
